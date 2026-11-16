@@ -1,6 +1,6 @@
 # <img src="icons/telemprompit.png" width="32" alt=""> telemprompit
 
-Paste your notes and read them off the Elgato Prompter one line at a time
+Paste your notes and read them one line at a time on your Mac
 
 macOS
 
@@ -12,7 +12,7 @@ macOS
 
 ## What it is
 
-A teleprompter I use for talking-head recordings. You paste in your notes, plain text or Notion bullets, and it shows them on the Elgato Prompter with the current line highlighted.
+Yoelvis’s fork of Mike Cann’s teleprompter for talking-head recordings. You paste in your notes, plain text or Notion bullets, and it shows them on the Elgato Prompter with the current line highlighted.
 
 You can step through line by line or let it auto-scroll, and a presentation clicker works from any app, which is nice when I'm demoing something else at the same time.
 
@@ -21,6 +21,14 @@ If you've got a Notion key set up, the empty prompter also has a dropdown of you
 ![Telemprompit](docs/header.png)
 
 ![Telemprompit stepping through notes](docs/ss1.png)
+
+## Yoelvis’s setup
+
+The clone lives at `~/Developer/content-creation/telemprompit`, alongside Record It.
+The app opens as a window on your main display. Mirroring, automatic Elgato
+following, and global Page Up/Page Down capture start off. The Control-Option
+shortcuts remain available while recording or demonstrating another app.
+Record It’s Teleprompter button opens this app.
 
 ## Get it
 
@@ -41,7 +49,7 @@ No API keys are needed. The Notion dropdown is optional, see
 [Loading scripts from Notion](#loading-scripts-from-notion).
 
 ```bash
-git clone https://github.com/mikecann/telemprompit.git
+git clone https://github.com/ymulenll/telemprompit.git
 cd telemprompit
 bash setup_mac.sh
 bash install.sh
@@ -126,7 +134,7 @@ clicker drives it while you demo something else:
 | ⌃⌥→ / ⌃⌥← | Next / previous |
 | ⌃⌥Space | Start or pause auto-scroll |
 
-Both groups can be switched off in **Settings > Controls**. Page Up and Page
+Global clicker keys start off in this fork. Both groups can be switched off in **Settings > Controls**. Page Up and Page
 Down are captured from every app while the global clicker option is on.
 
 ### URL commands
@@ -155,26 +163,28 @@ switch in DisplayLink Manager. It needs Accessibility permission the first time.
 
 ## Loading scripts from Notion
 
-Put a Notion integration key in this clone's `.env`:
+Put a Notion integration key and your data source ID in this clone's `.env`:
 
 ```bash
 cp .env.example .env
 # then set NOTION_API_KEY=... (NOTION_TOKEN works too)
+# and NOTION_DATA_SOURCE_ID=...
 ```
 
 Share your projects database with that integration, then rebuild with
 `bash setup_mac.sh` so the app knows where the `.env` is. An environment
 variable with the same name wins over the file.
 
-The dropdown lists the 25 most recently edited projects that aren't `Done` or
-`Cancelled`. Picking one downloads the page and loads its **Script** section,
+The dropdown lists the 25 most recently edited projects that aren't `Done 🙌`. Picking one downloads the page and loads its **Script** section,
 which is a toggle heading on my project pages next to Notes, Thumb & Title
 and Links. A page without a Script heading loads whole.
 
-The database is my Projects database, set by `projectsDataSourceID` in
-`Sources/TelemprompitApp/NotionClient.swift`. Change it, and the skipped
-statuses next to it, to use your own. It's the same database
-[Video HQ](https://github.com/mikecann/video-hq) uses.
+This fork requires `NOTION_DATA_SOURCE_ID` for your own data source. It never
+falls back to Mike’s database. Both settings can come from the environment or
+the ignored local `.env`; environment values win. Restart the app after changes.
+The query matches your YouTube Content database: a `Status` select property
+and a `Done 🙌` option for finished videos.
+The integration key stays local and is never included in the app bundle or Git.
 
 ## Development
 
@@ -231,8 +241,8 @@ The display lookup and DisplayLink switch live in the
   and the app has Accessibility permission. You can also enable the display
   directly in DisplayLink Manager.
 
-## More tools
+## Upstream credit
 
-You can find my other tools at [mikerosoft.app](https://mikerosoft.app).
+Originally created by [Mike Cann](https://github.com/mikecann/telemprompit). Find his other tools at [mikerosoft.app](https://mikerosoft.app).
 
 MIT licensed.

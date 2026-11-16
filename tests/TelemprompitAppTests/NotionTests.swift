@@ -36,7 +36,7 @@ final class NotionClientTests: XCTestCase {
             "last_edited_time": "2026-10-16T03:18:00.000Z",
             "properties": {
               "Name": {"id": "title", "type": "title", "title": [{"plain_text": "Convex 1.47 "}, {"plain_text": "release video"}]},
-              "Status": {"id": "status", "type": "status", "status": {"name": "Writing"}}
+              "Status": {"id": "status", "type": "select", "select": {"name": "Doing 💪"}}
             }
           }, {
             "object": "page",
@@ -52,18 +52,18 @@ final class NotionClientTests: XCTestCase {
           "has_more": false
         }
         """#)
-        let client = NotionClient(apiKey: "notion-test", transport: transport)
+        let client = NotionClient(apiKey: "notion-test", projectsDataSourceID: "test-projects", transport: transport)
 
         let projects = try await client.recentProjects()
 
         XCTAssertEqual(projects, [
-            NotionProject(id: "3fafd70e-cfa0-81fe-8c71-d539a0c7411a", name: "Convex 1.47 release video", status: "Writing"),
+            NotionProject(id: "3fafd70e-cfa0-81fe-8c71-d539a0c7411a", name: "Convex 1.47 release video", status: "Doing 💪"),
             NotionProject(id: "21ffd70e-cfa0-8067-8084-f5a01b98456f", name: "Untitled", status: nil),
         ])
         let request = try XCTUnwrap(transport.requests.first)
         XCTAssertEqual(
             request.url?.absoluteString,
-            "https://api.notion.com/v1/data_sources/\(NotionClient.projectsDataSourceID)/query"
+            "https://api.notion.com/v1/data_sources/test-projects/query"
         )
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer notion-test")
@@ -74,15 +74,15 @@ final class NotionClientTests: XCTestCase {
         let sorts = try XCTUnwrap(json["sorts"] as? [[String: String]])
         XCTAssertEqual(sorts, [["timestamp": "last_edited_time", "direction": "descending"]])
         let filters = try XCTUnwrap((json["filter"] as? [String: Any])?["and"] as? [[String: Any]])
-        let skipped = filters.compactMap { ($0["status"] as? [String: String])?["does_not_equal"] }
-        XCTAssertEqual(skipped, ["Done", "Cancelled"])
+        let skipped = filters.compactMap { ($0["select"] as? [String: String])?["does_not_equal"] }
+        XCTAssertEqual(skipped, ["Done 🙌"])
     }
 
     func testPageMarkdownDownloadsThePage() async throws {
         let transport = RecordingTransport(responseBody: #"""
         {"object": "page_markdown", "id": "abc", "markdown": "# Script\n\tHello", "truncated": false, "unknown_block_ids": []}
         """#)
-        let client = NotionClient(apiKey: "notion-test", transport: transport)
+        let client = NotionClient(apiKey: "notion-test", projectsDataSourceID: "test-projects", transport: transport)
 
         let markdown = try await client.pageMarkdown(pageID: "3fafd70e-cfa0-81fe-8c71-d539a0c7411a")
 
@@ -100,7 +100,7 @@ final class NotionClientTests: XCTestCase {
             responseBody: #"{"object":"error","message":"Share the Projects database with your integration."}"#,
             statusCode: 404
         )
-        let client = NotionClient(apiKey: "notion-test", transport: transport)
+        let client = NotionClient(apiKey: "notion-test", projectsDataSourceID: "test-projects", transport: transport)
 
         do {
             _ = try await client.recentProjects()
@@ -168,6 +168,15 @@ final class NotionScriptTests: XCTestCase {
 }
 
 final class NotionCredentialsTests: XCTestCase {
+    func testDataSourceMustBeConfiguredAndSupportsDotenv() throws {
+        XCTAssertNil(NotionCredentials.dataSourceID(environment: [:], dotenvURL: nil))
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: url) }
+        try "NOTION_DATA_SOURCE_ID=from-file".write(to: url, atomically: true, encoding: .utf8)
+        XCTAssertEqual(NotionCredentials.dataSourceID(environment: [:], dotenvURL: url), "from-file")
+        XCTAssertEqual(NotionCredentials.dataSourceID(environment: ["NOTION_DATA_SOURCE_ID": " from-env "], dotenvURL: url), "from-env")
+    }
+
     private func dotenv(_ contents: String) throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("telemprompit-\(UUID().uuidString).env")
@@ -233,7 +242,7 @@ private struct SlowListSource: NotionScriptSource {
 
 @MainActor
 final class NotionPickerTests: XCTestCase {
-    private let project = NotionProject(id: "p1", name: "Convex 1.47 release video", status: "Writing")
+    private let project = NotionProject(id: "p1", name: "Convex 1.47 release video", status: "Doing 💪")
 
     private func makeModel() -> PrompterModel {
         PrompterModel(defaults: UserDefaults(suiteName: "telemprompit-notion-\(UUID().uuidString)")!)

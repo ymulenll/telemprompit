@@ -60,3 +60,10 @@ bash install.sh      # symlink the CLI launcher into ~/.local/bin
 `build-app.sh` stages and signs the app. Use `TELEMPROMPIT_APP_DIR` for an
 isolated app bundle during verification and `TELEMPROMPIT_CODESIGN_IDENTITY=-`
 for ad-hoc signing. `restart.sh` rebuilds in debug mode and launches the app.
+
+## Personal defaults
+
+This fork uses a normal desktop window, with Elgato following and global clicker
+keys disabled by default. Keep Control-Option shortcuts available. Notion requires
+NOTION_API_KEY and NOTION_DATA_SOURCE_ID from the ignored local .env or environment.
+Never restore an upstream personal database ID or commit credentials.

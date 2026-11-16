@@ -86,12 +86,13 @@ final class NotionPicker: ObservableObject {
         bundle: Bundle = .main
     ) -> NotionPicker {
         let dotenvURL = NotionCredentials.dotenvURL(bundle: bundle)
-        if let apiKey = NotionCredentials.apiKey(environment: environment, dotenvURL: dotenvURL) {
-            return NotionPicker(source: NotionClient(apiKey: apiKey))
+        if let apiKey = NotionCredentials.apiKey(environment: environment, dotenvURL: dotenvURL),
+           let dataSourceID = NotionCredentials.dataSourceID(environment: environment, dotenvURL: dotenvURL) {
+            return NotionPicker(source: NotionClient(apiKey: apiKey, projectsDataSourceID: dataSourceID))
         }
         let place = dotenvURL.map { ($0.path as NSString).abbreviatingWithTildeInPath }
             ?? "this clone's .env"
-        return NotionPicker(source: nil, setupHint: "Add NOTION_API_KEY to \(place) to load scripts from Notion.")
+        return NotionPicker(source: nil, setupHint: "Add NOTION_API_KEY and NOTION_DATA_SOURCE_ID to \(place) to load scripts from Notion.")
     }
 
     var isAvailable: Bool { source != nil }

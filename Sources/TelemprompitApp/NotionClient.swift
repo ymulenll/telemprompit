@@ -43,20 +43,22 @@ enum NotionClientError: LocalizedError {
 struct NotionClient: NotionScriptSource {
     static let endpoint = URL(string: "https://api.notion.com/v1")!
     static let apiVersion = "2026-03-11"
-    /// Mike's Projects database. Change this to use your own.
-    static let projectsDataSourceID = "1a8fd70e-cfa0-8076-8e19-000bbdf1cc35"
     static let recentProjectLimit = 25
     /// Statuses for projects that are finished with, so they stay out of the list.
-    static let skippedStatuses = ["Done", "Cancelled"]
+    static let skippedStatuses = ["Done 🙌"]
 
     let apiKey: String
+    var projectsDataSourceID: String = ""
     var transport: any HTTPTransport = URLSessionHTTPTransport()
 
     func recentProjects() async throws -> [NotionProject] {
+        guard !projectsDataSourceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw NotionClientError.requestFailed(status: 0, message: "Set NOTION_DATA_SOURCE_ID to your scripts data source.")
+        }
         let body: [String: Any] = [
             "filter": [
                 "and": Self.skippedStatuses.map { status in
-                    ["property": "Status", "status": ["does_not_equal": status]]
+                    ["property": "Status", "select": ["does_not_equal": status]]
                 },
             ],
             "sorts": [["timestamp": "last_edited_time", "direction": "descending"]],
@@ -64,7 +66,7 @@ struct NotionClient: NotionScriptSource {
         ]
         let url = Self.endpoint
             .appendingPathComponent("data_sources")
-            .appendingPathComponent(Self.projectsDataSourceID)
+            .appendingPathComponent(projectsDataSourceID)
             .appendingPathComponent("query")
         var request = request(url: url, method: "POST")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -80,7 +82,7 @@ struct NotionClient: NotionScriptSource {
             return NotionProject(
                 id: page.id,
                 name: title.isEmpty ? "Untitled" : title,
-                status: page.properties["Status"]?.status?.name
+                status: page.properties["Status"]?.select?.name ?? page.properties["Status"]?.status?.name
             )
         }
     }
@@ -139,6 +141,7 @@ private extension NotionClient {
         let type: String
         let title: [RichText]?
         let status: Status?
+        let select: Status?
     }
 
     struct Status: Decodable {
@@ -162,7 +165,15 @@ enum NotionCredentials {
     static let dotenvInfoKey = "TelemprompitDotenvPath"
 
     static func apiKey(environment: [String: String], dotenvURL: URL?) -> String? {
-        for name in keyNames {
+        value(names: keyNames, environment: environment, dotenvURL: dotenvURL)
+    }
+
+    static func dataSourceID(environment: [String: String], dotenvURL: URL?) -> String? {
+        value(names: ["NOTION_DATA_SOURCE_ID"], environment: environment, dotenvURL: dotenvURL)
+    }
+
+    private static func value(names: [String], environment: [String: String], dotenvURL: URL?) -> String? {
+        for name in names {
             if let value = environment[name]?.trimmingCharacters(in: .whitespacesAndNewlines),
                !value.isEmpty {
                 return value
@@ -172,7 +183,7 @@ enum NotionCredentials {
               let contents = try? String(contentsOf: dotenvURL, encoding: .utf8)
         else { return nil }
         let values = dotenvValues(contents)
-        return keyNames.lazy.compactMap { values[$0] }.first { !$0.isEmpty }
+        return names.lazy.compactMap { values[$0] }.first { !$0.isEmpty }
     }
 
     static func dotenvURL(bundle: Bundle = .main) -> URL? {

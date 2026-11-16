@@ -33,12 +33,12 @@ struct PrompterSettings: Equatable {
     /// Auto-scroll speed in points per second.
     var scrollSpeed: Double = 60
     /// Page Up / Page Down (what presentation clickers send) work in any app.
-    var clickerKeysGlobal = true
+    var clickerKeysGlobal = false
     /// ⌃⌥← / ⌃⌥→ / ⌃⌥Space work in any app.
     var globalShortcuts = true
     var keepOnTop = false
     /// Jump to the Elgato Prompter whenever it is switched on.
-    var followPrompter = true
+    var followPrompter = false
 
     static let defaults = PrompterSettings()
 
